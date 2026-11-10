@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { PORTFOLIO_DATA, WindowId } from "@/data/portfolioData";
 import { HappyMacIcon, MusicNotePixelIcon } from "@/components/icons/PixelIcons";
 
@@ -8,21 +8,59 @@ interface AboutWindowProps {
   onOpenWindow: (id: WindowId) => void;
 }
 
+type DrumChannelId = "kick" | "snare" | "hihat" | "synth";
+
+interface DrumChannel {
+  id: DrumChannelId;
+  label: string;
+  code: string;
+}
+
+const DRUM_CHANNELS: DrumChannel[] = [
+  { id: "kick", label: "808 KICK", code: "CH01" },
+  { id: "snare", label: "SNARE", code: "CH02" },
+  { id: "hihat", label: "HI-HAT", code: "CH03" },
+  { id: "synth", label: "R&B SYNTH", code: "CH04" },
+];
+
+const NUM_STEPS = 8;
+
+// Default Hip-Hop / R&B starter groove
+const INITIAL_PATTERN: Record<DrumChannelId, boolean[]> = {
+  kick: [true, false, false, true, false, true, false, false],
+  snare: [false, false, true, false, false, false, true, false],
+  hihat: [true, true, true, true, true, true, true, true],
+  synth: [true, false, false, true, false, false, true, true],
+};
+
+// Pentatonic R&B / Indie frequencies per step for the Synth channel
+const SYNTH_STEP_NOTES = [
+  261.63, // C4
+  311.13, // Eb4
+  349.23, // F4
+  392.0,  // G4
+  466.16, // Bb4
+  392.0,  // G4
+  349.23, // F4
+  523.25, // C5
+];
+
 export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
   const { owner } = PORTFOLIO_DATA;
+
+  const [pattern, setPattern] =
+    useState<Record<DrumChannelId, boolean[]>>(INITIAL_PATTERN);
   const [isPlayingBeat, setIsPlayingBeat] = useState(false);
-  const [activeBeatStep, setActiveBeatStep] = useState(0);
+  const [activeBeatStep, setActiveBeatStep] = useState<number>(0);
+  const [bpm, setBpm] = useState<number>(110);
+
+  const patternRef = useRef<Record<DrumChannelId, boolean[]>>(pattern);
+  patternRef.current = pattern;
+
   const audioCtxRef = useRef<AudioContext | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Interactive 1-bit FL Studio Step Sequencer using Web Audio API
-  useEffect(() => {
-    if (!isPlayingBeat) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      setActiveBeatStep(0);
-      return;
-    }
-
+  const getAudioContext = useCallback((): AudioContext | null => {
     const AudioContextClass =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext })
@@ -30,45 +68,206 @@ export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
     if (!audioCtxRef.current && AudioContextClass) {
       audioCtxRef.current = new AudioContextClass();
     }
+    if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
+      audioCtxRef.current.resume();
+    }
+    return audioCtxRef.current;
+  }, []);
 
-    // Chill R&B / Indie pentatonic progression in Hz
-    const melodyNotes = [
-      261.63, 329.63, 392.0, 493.88, 392.0, 329.63, 293.66, 349.23,
-    ];
-    let step = 0;
+  // Synthesize each drum/synth sound using Web Audio API
+  const triggerChannelSound = useCallback(
+    (channelId: DrumChannelId, stepIdx: number = 0) => {
+      const ctx = getAudioContext();
+      if (!ctx) return;
 
-    intervalRef.current = setInterval(() => {
-      const ctx = audioCtxRef.current;
-      if (ctx && ctx.state === "suspended") {
-        ctx.resume();
-      }
-      if (ctx) {
-        const now = ctx.currentTime;
+      const now = ctx.currentTime;
+
+      if (channelId === "kick") {
+        // Punchy 808 Sub Kick
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = step % 2 === 0 ? "triangle" : "square";
-        osc.frequency.setValueAtTime(
-          melodyNotes[step % melodyNotes.length],
-          now
-        );
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(145, now);
+        osc.frequency.exponentialRampToValueAtTime(36, now + 0.14);
 
-        gain.gain.setValueAtTime(0.035, now);
-        gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.22);
+        gain.gain.setValueAtTime(0.42, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
 
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.24);
+        osc.stop(now + 0.19);
+      } else if (channelId === "snare") {
+        // Crisp Snare (Noise burst + body snap)
+        const bufferSize = Math.floor(ctx.sampleRate * 0.12);
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+
+        const whiteNoise = ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.setValueAtTime(900, now);
+
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.22, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.005, now + 0.12);
+
+        whiteNoise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        whiteNoise.start(now);
+        whiteNoise.stop(now + 0.12);
+
+        // Snare tonal body
+        const bodyOsc = ctx.createOscillator();
+        const bodyGain = ctx.createGain();
+        bodyOsc.type = "triangle";
+        bodyOsc.frequency.setValueAtTime(185, now);
+        bodyOsc.frequency.exponentialRampToValueAtTime(75, now + 0.06);
+
+        bodyGain.gain.setValueAtTime(0.2, now);
+        bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+        bodyOsc.connect(bodyGain);
+        bodyGain.connect(ctx.destination);
+        bodyOsc.start(now);
+        bodyOsc.stop(now + 0.08);
+      } else if (channelId === "hihat") {
+        // Metallic Closed Hi-Hat
+        const bufferSize = Math.floor(ctx.sampleRate * 0.05);
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+
+        const whiteNoise = ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.setValueAtTime(6500, now);
+
+        const hatGain = ctx.createGain();
+        hatGain.gain.setValueAtTime(0.14, now);
+        hatGain.gain.exponentialRampToValueAtTime(0.002, now + 0.045);
+
+        whiteNoise.connect(filter);
+        filter.connect(hatGain);
+        hatGain.connect(ctx.destination);
+        whiteNoise.start(now);
+        whiteNoise.stop(now + 0.05);
+      } else if (channelId === "synth") {
+        // Warm R&B / Chiptune Synth Pluck
+        const freq = SYNTH_STEP_NOTES[stepIdx % SYNTH_STEP_NOTES.length];
+        const osc = ctx.createOscillator();
+        const subOsc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "square";
+        subOsc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, now);
+        subOsc.frequency.setValueAtTime(freq * 0.5, now);
+
+        gain.gain.setValueAtTime(0.055, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+        osc.connect(gain);
+        subOsc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now);
+        subOsc.start(now);
+        osc.stop(now + 0.23);
+        subOsc.stop(now + 0.23);
+      }
+    },
+    [getAudioContext]
+  );
+
+  // Toggle an individual step pad in the sequencer grid
+  const handleToggleStep = (channelId: DrumChannelId, stepIdx: number) => {
+    setPattern((prev) => {
+      const nextRow = [...prev[channelId]];
+      const willEnable = !nextRow[stepIdx];
+      nextRow[stepIdx] = willEnable;
+
+      // Audition the sound immediately when enabling a step while paused
+      if (willEnable && !isPlayingBeat) {
+        triggerChannelSound(channelId, stepIdx);
       }
 
-      setActiveBeatStep(step % 8);
-      step++;
-    }, 260);
+      return {
+        ...prev,
+        [channelId]: nextRow,
+      };
+    });
+  };
+
+  // Generate a random musical beat pattern
+  const handleRandomizePattern = () => {
+    const nextPattern: Record<DrumChannelId, boolean[]> = {
+      kick: Array.from({ length: NUM_STEPS }, (_, i) =>
+        i === 0 ? true : Math.random() < 0.38
+      ),
+      snare: Array.from({ length: NUM_STEPS }, (_, i) =>
+        i === 2 || i === 6 ? true : Math.random() < 0.2
+      ),
+      hihat: Array.from({ length: NUM_STEPS }, () => Math.random() < 0.72),
+      synth: Array.from({ length: NUM_STEPS }, () => Math.random() < 0.45),
+    };
+    setPattern(nextPattern);
+    if (!isPlayingBeat) {
+      triggerChannelSound("synth", Math.floor(Math.random() * NUM_STEPS));
+    }
+  };
+
+  // Clear all steps
+  const handleClearPattern = () => {
+    setPattern({
+      kick: Array(NUM_STEPS).fill(false),
+      snare: Array(NUM_STEPS).fill(false),
+      hihat: Array(NUM_STEPS).fill(false),
+      synth: Array(NUM_STEPS).fill(false),
+    });
+  };
+
+  // Main Sequencer Clock Loop
+  useEffect(() => {
+    if (!isPlayingBeat) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      setActiveBeatStep(0);
+      return;
+    }
+
+    // 8th-note step duration in ms from BPM
+    const stepMs = Math.round((60 / bpm / 2) * 1000);
+    let currentStep = 0;
+
+    const runStep = () => {
+      const livePattern = patternRef.current;
+      (Object.keys(livePattern) as DrumChannelId[]).forEach((chId) => {
+        if (livePattern[chId][currentStep]) {
+          triggerChannelSound(chId, currentStep);
+        }
+      });
+      setActiveBeatStep(currentStep);
+      currentStep = (currentStep + 1) % NUM_STEPS;
+    };
+
+    // Play step 0 immediately on Play press
+    runStep();
+    intervalRef.current = setInterval(runStep, stepMs);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isPlayingBeat]);
+  }, [isPlayingBeat, bpm, triggerChannelSound]);
 
   return (
     <div className="p-5 sm:p-6 space-y-6">
@@ -176,50 +375,158 @@ export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
         </div>
       </div>
 
-      {/* Interactive FL Studio 1-Bit Mini Sequencer Card */}
-      <div className="border border-black bg-white p-3.5 shadow-mac">
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-black">
+      {/* Interactive FL Studio Channel Rack / Drum Machine Sequencer Emulator */}
+      <div className="border-2 border-black bg-white p-4 shadow-mac space-y-3.5">
+        {/* Top Sequencer Transport Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b-2 border-black">
           <div className="flex items-center gap-2">
-            <MusicNotePixelIcon size={16} />
+            <div className="border border-black bg-neutral-100 p-1.5">
+              <MusicNotePixelIcon size={16} />
+            </div>
             <div>
               <p className="font-retro text-sm sm:text-base leading-none font-bold">
-                FL_STUDIO_1BIT.FLP — Hip-Hop / R&amp;B / Indie Loop
+                FL_CHANNEL_RACK.EXE — Mini Drum &amp; Synth Sequencer
               </p>
-              <p className="font-mono text-[10px] text-neutral-500 mt-0.5">
-                Interactive Chiptune Pattern Preview
+              <p className="font-mono text-[10px] font-semibold text-neutral-600 mt-0.5">
+                Click pads to toggle beats • Click channel names to preview sound
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsPlayingBeat((prev) => !prev)}
-            className={`mac-interactive px-3 py-1 border border-black font-retro font-bold text-sm tracking-wide transition-none ${
-              isPlayingBeat
-                ? "bg-black text-white"
-                : "bg-white text-black hover:bg-black hover:text-white shadow-[1px_1px_0px_#000]"
-            }`}
-          >
-            {isPlayingBeat ? "■ STOP LOOP" : "▶ PLAY BEAT"}
-          </button>
+          {/* Transport Controls: Play/Stop, Randomize, Clear, BPM */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsPlayingBeat((prev) => !prev)}
+              className={`mac-interactive px-3 py-1 border-2 border-black font-retro font-bold text-xs sm:text-sm tracking-wide transition-none ${
+                isPlayingBeat
+                  ? "bg-black text-white"
+                  : "bg-white text-black hover:bg-black hover:text-white shadow-[1px_1px_0px_#000]"
+              }`}
+            >
+              {isPlayingBeat ? "■ STOP" : "▶ PLAY"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRandomizePattern}
+              title="Generate a random drum & synth beat"
+              className="mac-interactive px-2.5 py-1 border border-black bg-neutral-100 text-black font-retro font-bold text-xs sm:text-sm hover:bg-black hover:text-white transition-none"
+            >
+              RNDM
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClearPattern}
+              title="Clear all steps"
+              className="mac-interactive px-2.5 py-1 border border-black bg-white text-black font-retro font-bold text-xs sm:text-sm hover:bg-black hover:text-white transition-none"
+            >
+              CLR
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setBpm((prev) => (prev === 95 ? 110 : prev === 110 ? 128 : 95))
+              }
+              title="Click to cycle Tempo (BPM)"
+              className="mac-interactive px-2 py-1 border border-black bg-neutral-50 font-mono text-[11px] font-bold hover:bg-black hover:text-white transition-none"
+            >
+              {bpm} BPM
+            </button>
+          </div>
         </div>
 
-        {/* 8-Step Sequencer Grid */}
-        <div className="mt-3 grid grid-cols-8 gap-1.5">
-          {Array.from({ length: 8 }).map((_, idx) => {
-            const active = isPlayingBeat && activeBeatStep === idx;
+        {/* Multi-Track Channel Rack Grid (4 Channels x 8 Steps) */}
+        <div className="space-y-2">
+          {/* Step Numbers Header */}
+          <div className="grid grid-cols-[100px_1fr] sm:grid-cols-[120px_1fr] items-center gap-2">
+            <span className="font-mono text-[10px] font-bold uppercase text-neutral-500 pl-1">
+              CHANNEL
+            </span>
+            <div className="grid grid-cols-8 gap-1.5">
+              {Array.from({ length: NUM_STEPS }).map((_, stepIdx) => {
+                const isPlayhead = isPlayingBeat && activeBeatStep === stepIdx;
+                return (
+                  <div
+                    key={stepIdx}
+                    className={`h-4 flex items-center justify-center font-mono text-[10px] font-bold border ${
+                      isPlayhead
+                        ? "bg-black text-white border-black"
+                        : "bg-neutral-100 text-neutral-600 border-neutral-400"
+                    }`}
+                  >
+                    0{stepIdx + 1}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4 Instrument Rows */}
+          {DRUM_CHANNELS.map((channel) => {
+            const rowSteps = pattern[channel.id];
             return (
               <div
-                key={idx}
-                className={`h-6 border border-black flex items-center justify-center font-mono text-[10px] ${
-                  active
-                    ? "bg-black text-white font-bold"
-                    : idx % 2 === 0
-                    ? "bg-neutral-200 text-neutral-700"
-                    : "bg-white text-neutral-500"
-                }`}
+                key={channel.id}
+                className="grid grid-cols-[100px_1fr] sm:grid-cols-[120px_1fr] items-center gap-2"
               >
-                0{idx + 1}
+                {/* Clickable Channel Label Button (Auditions Sound) */}
+                <button
+                  type="button"
+                  onClick={() => triggerChannelSound(channel.id, 0)}
+                  title={`Click to test ${channel.label}`}
+                  className="mac-interactive h-8 px-2 border border-black bg-neutral-100 hover:bg-black hover:text-white flex items-center justify-between text-left transition-none shadow-[1px_1px_0px_#000]"
+                >
+                  <span className="font-mono text-[11px] font-bold truncate">
+                    {channel.label}
+                  </span>
+                  <span className="hidden sm:inline-block font-mono text-[9px] opacity-60">
+                    ♪
+                  </span>
+                </button>
+
+                {/* 8 Step Pads for this Channel */}
+                <div className="grid grid-cols-8 gap-1.5">
+                  {rowSteps.map((isEnabled, stepIdx) => {
+                    const isCurrentPlayhead =
+                      isPlayingBeat && activeBeatStep === stepIdx;
+                    const isSecondBar = stepIdx >= 4;
+
+                    return (
+                      <button
+                        key={stepIdx}
+                        type="button"
+                        aria-label={`${channel.label} step ${stepIdx + 1} ${
+                          isEnabled ? "enabled" : "disabled"
+                        }`}
+                        onClick={() => handleToggleStep(channel.id, stepIdx)}
+                        className={`mac-interactive h-8 border border-black flex items-center justify-center transition-none relative ${
+                          isEnabled
+                            ? isCurrentPlayhead
+                              ? "bg-white text-black border-2 border-black shadow-[inset_0_0_0_2px_#000]"
+                              : "bg-black text-white shadow-[1px_1px_0px_#000]"
+                            : isCurrentPlayhead
+                            ? "bg-neutral-300 text-black border-2 border-black"
+                            : isSecondBar
+                            ? "bg-neutral-100 text-neutral-400 hover:bg-neutral-200"
+                            : "bg-white text-neutral-400 hover:bg-neutral-100"
+                        }`}
+                      >
+                        <span
+                          className={`w-2 h-2 ${
+                            isEnabled
+                              ? isCurrentPlayhead
+                                ? "bg-black"
+                                : "bg-white"
+                              : "border border-neutral-400"
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
