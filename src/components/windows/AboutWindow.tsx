@@ -24,13 +24,17 @@ export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
     }
 
     const AudioContextClass =
-      window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
     if (!audioCtxRef.current && AudioContextClass) {
       audioCtxRef.current = new AudioContextClass();
     }
 
     // Chill R&B / Indie pentatonic progression in Hz
-    const melodyNotes = [261.63, 329.63, 392.0, 493.88, 392.0, 329.63, 293.66, 349.23];
+    const melodyNotes = [
+      261.63, 329.63, 392.0, 493.88, 392.0, 329.63, 293.66, 349.23,
+    ];
     let step = 0;
 
     intervalRef.current = setInterval(() => {
@@ -43,7 +47,10 @@ export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = step % 2 === 0 ? "triangle" : "square";
-        osc.frequency.setValueAtTime(melodyNotes[step % melodyNotes.length], now);
+        osc.frequency.setValueAtTime(
+          melodyNotes[step % melodyNotes.length],
+          now
+        );
 
         gain.gain.setValueAtTime(0.035, now);
         gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.22);
@@ -75,10 +82,10 @@ export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
 
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-1.5 py-0.5 bg-black text-white font-mono text-[10px] uppercase tracking-widest">
+              <span className="px-1.5 py-0.5 bg-black text-white font-mono text-[10px] font-bold uppercase tracking-widest">
                 @{owner.handle}
               </span>
-              <span className="px-1.5 py-0.5 border border-black bg-white font-mono text-[10px] font-semibold">
+              <span className="px-1.5 py-0.5 border border-black bg-white font-mono text-[10px] font-bold">
                 GPA: {owner.gpa}
               </span>
             </div>
@@ -86,13 +93,13 @@ export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
               {owner.name}
             </h1>
             <p className="text-xs sm:text-sm text-neutral-700 font-medium">
-              {owner.degree} • Frontend, Backend, Project Management &amp; QA
+              {owner.degree} • Frontend, Backend &amp; Project Management
             </p>
           </div>
         </div>
 
         {/* Status Indicator */}
-        <div className="border border-black bg-white px-3 py-1.5 font-mono text-xs flex items-center gap-2 self-start sm:self-center">
+        <div className="border border-black bg-white px-3 py-1.5 font-mono text-xs font-bold flex items-center gap-2 self-start sm:self-center">
           <span className="w-2 h-2 bg-black inline-block animate-pulse" />
           <span>OPEN TO OPPORTUNITIES</span>
         </div>
@@ -103,7 +110,7 @@ export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
         {owner.primaryRoles.map((role) => (
           <span
             key={role}
-            className="px-2.5 py-1 border border-black bg-white font-mono text-xs font-medium shadow-[1px_1px_0px_#000]"
+            className="px-2.5 py-1 border border-black bg-white font-mono text-xs font-bold shadow-[1px_1px_0px_#000]"
           >
             {role}
           </span>
@@ -118,10 +125,10 @@ export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
             className="border border-black bg-white p-4 relative"
           >
             <div className="flex items-center justify-between border-b border-black pb-2 mb-2.5">
-              <span className="font-retro text-lg tracking-wide uppercase font-bold">
+              <span className="font-retro text-base sm:text-lg tracking-wide uppercase font-bold">
                 0{idx + 1} // {section.heading}
               </span>
-              <span className="font-mono text-[10px] text-neutral-500">
+              <span className="font-mono text-[10px] font-bold text-neutral-500">
                 SECT_0{idx + 1}.TXT
               </span>
             </div>
@@ -135,10 +142,12 @@ export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
       {/* Engineering Experience & Core Competencies */}
       <div className="border border-black bg-neutral-50 p-4">
         <div className="flex items-center justify-between border-b border-black pb-2 mb-3">
-          <h3 className="font-retro text-lg uppercase tracking-wide font-bold">
+          <h3 className="font-retro text-base sm:text-lg uppercase tracking-wide font-bold">
             Core Engineering &amp; Stack Experience
           </h3>
-          <span className="font-mono text-[10px] text-neutral-500">SYS.CAPABILITIES</span>
+          <span className="font-mono text-[10px] font-bold text-neutral-500">
+            SYS.CAPABILITIES
+          </span>
         </div>
 
         <p className="text-sm text-neutral-800 leading-relaxed mb-3">
@@ -173,7 +182,7 @@ export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
           <div className="flex items-center gap-2">
             <MusicNotePixelIcon size={16} />
             <div>
-              <p className="font-retro text-base leading-none font-bold">
+              <p className="font-retro text-sm sm:text-base leading-none font-bold">
                 FL_STUDIO_1BIT.FLP — Hip-Hop / R&amp;B / Indie Loop
               </p>
               <p className="font-mono text-[10px] text-neutral-500 mt-0.5">
@@ -185,7 +194,7 @@ export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
           <button
             type="button"
             onClick={() => setIsPlayingBeat((prev) => !prev)}
-            className={`mac-interactive px-3 py-1 border border-black font-retro text-base tracking-wide transition-none ${
+            className={`mac-interactive px-3 py-1 border border-black font-retro font-bold text-sm tracking-wide transition-none ${
               isPlayingBeat
                 ? "bg-black text-white"
                 : "bg-white text-black hover:bg-black hover:text-white shadow-[1px_1px_0px_#000]"
@@ -222,28 +231,28 @@ export default function AboutWindow({ onOpenWindow }: AboutWindowProps) {
         <button
           type="button"
           onClick={() => onOpenWindow("projects")}
-          className="mac-interactive px-3.5 py-1.5 border border-black bg-black text-white font-retro text-base tracking-wide hover:bg-white hover:text-black shadow-mac transition-none"
+          className="mac-interactive px-3.5 py-1.5 border border-black bg-black text-white font-retro font-bold text-sm sm:text-base tracking-wide hover:bg-white hover:text-black shadow-mac transition-none"
         >
           Open Projects (5) ↗
         </button>
         <button
           type="button"
           onClick={() => onOpenWindow("skills")}
-          className="mac-interactive px-3.5 py-1.5 border border-black bg-white text-black font-retro text-base tracking-wide hover:bg-black hover:text-white shadow-mac transition-none"
+          className="mac-interactive px-3.5 py-1.5 border border-black bg-white text-black font-retro font-bold text-sm sm:text-base tracking-wide hover:bg-black hover:text-white shadow-mac transition-none"
         >
           View Tech Stack
         </button>
         <button
           type="button"
           onClick={() => onOpenWindow("credentials")}
-          className="mac-interactive px-3.5 py-1.5 border border-black bg-white text-black font-retro text-base tracking-wide hover:bg-black hover:text-white shadow-mac transition-none"
+          className="mac-interactive px-3.5 py-1.5 border border-black bg-white text-black font-retro font-bold text-sm sm:text-base tracking-wide hover:bg-black hover:text-white shadow-mac transition-none"
         >
           View Credentials (4)
         </button>
         <button
           type="button"
           onClick={() => onOpenWindow("resume")}
-          className="mac-interactive px-3.5 py-1.5 border border-black bg-white text-black font-retro text-base tracking-wide hover:bg-black hover:text-white shadow-mac transition-none"
+          className="mac-interactive px-3.5 py-1.5 border border-black bg-white text-black font-retro font-bold text-sm sm:text-base tracking-wide hover:bg-black hover:text-white shadow-mac transition-none"
         >
           Open Resume.pdf
         </button>
