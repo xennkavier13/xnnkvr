@@ -20,6 +20,7 @@ export interface ProjectItem {
   year: string;
   fileSize: string;
   screenshotUrl?: string;
+  screenshotUrls?: string[];
 }
 
 export interface CredentialItem {
@@ -32,6 +33,7 @@ export interface CredentialItem {
   verifyUrl?: string;
   badgeCode: string;
   screenshotUrl?: string;
+  screenshotUrls?: string[];
 }
 
 export const BOOT_STAGES = [
@@ -130,7 +132,7 @@ export const PORTFOLIO_DATA = {
       category: "tools",
       year: "Capstone",
       fileSize: "148 KB",
-      screenshotUrl: "/project/ariadne.jpg",
+      screenshotUrl: "/project/ariadne-2.jpg",
     },
     {
       id: "campusguru",
@@ -232,7 +234,10 @@ export const PORTFOLIO_DATA = {
       description:
         "Selected as a Finalist in the EY GDS ServiceNow Hackathon, collaborating under tight deadlines to architect, prototype, and pitch an enterprise workflow solution.",
       badgeCode: "EY-GDS-FINALIST",
-      screenshotUrl: "/credentials/servicenow-finalist.png",
+      screenshotUrls: [
+        "/credentials/servicenow-finalist.png",
+        "/credentials/servicenow-finalist-2.jpg",
+      ],
     },
     {
       id: "citu-parangal-2025",

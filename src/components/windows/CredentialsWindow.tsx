@@ -64,9 +64,10 @@ export default function CredentialsWindow() {
                 {cred.description}
               </p>
 
-              {cred.screenshotUrl && (
+              {(cred.screenshotUrls || cred.screenshotUrl) && (
                 <CRTImage
                   src={cred.screenshotUrl}
+                  images={cred.screenshotUrls}
                   alt={`${cred.title} certificate or photo`}
                   caption={`${cred.badgeCode}.BMP`}
                   aspectRatio="certificate"

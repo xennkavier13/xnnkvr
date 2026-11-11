@@ -85,9 +85,10 @@ export default function ProjectsWindow() {
 
               {/* Project Body */}
               <div className="p-4 space-y-3">
-                {project.screenshotUrl && (
+                {(project.screenshotUrls || project.screenshotUrl) && (
                   <CRTImage
                     src={project.screenshotUrl}
+                    images={project.screenshotUrls}
                     alt={`${project.title} screenshot`}
                     caption={`${project.title.toUpperCase()}_PREVIEW.BMP`}
                     aspectRatio="video"
