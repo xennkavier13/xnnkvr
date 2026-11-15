@@ -84,9 +84,9 @@ const WINDOW_CONFIGS: Record<WindowId, WindowConfig> = {
   },
   resume: {
     id: "resume",
-    title: "Resume.pdf — MacWrite Viewer",
+    title: "Dabon_Resume.pdf — MacWrite Viewer",
     iconLabel: "Resume.pdf",
-    subtitleMeta: "Placeholder Mode • Kenn Xavier Dabon CV • 142K",
+    subtitleMeta: "PDF Document • Kenn Xavier Dabon CV • Mounted",
     defaultBounds: { x: 116, y: 64, width: 660, height: 550 },
     minWidth: 360,
     minHeight: 300,

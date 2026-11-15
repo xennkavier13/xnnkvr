@@ -154,22 +154,29 @@ export default function ContactWindow({
               <span className="font-retro text-lg font-bold uppercase">
                 04 // Resume
               </span>
-              <span className="px-1.5 py-0.5 border border-black bg-neutral-100 text-black font-mono text-[10px]">
-                PLACEHOLDER
+              <span className="px-1.5 py-0.5 bg-black text-white font-mono text-[10px]">
+                PDF
               </span>
             </div>
             <p className="font-mono text-xs text-neutral-700 mt-1 truncate">
-              Kenn_Xavier_Dabon_Resume.pdf
+              {contact.resumeFileName}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => onOpenWindow("resume")}
-              className="mac-interactive w-full text-center px-3 py-1.5 border border-black bg-black text-white font-retro text-sm tracking-wide hover:bg-white hover:text-black transition-none"
+              className="mac-interactive flex-1 text-center px-3 py-1.5 border border-black bg-black text-white font-retro text-sm tracking-wide hover:bg-white hover:text-black transition-none"
             >
-              Open Resume Window ↗
+              Open Resume ↗
             </button>
+            <a
+              href={contact.resumeUrl}
+              download={contact.resumeFileName}
+              className="mac-interactive px-2.5 py-1.5 border border-black bg-white text-black font-retro text-sm hover:bg-black hover:text-white transition-none"
+            >
+              ⬇ PDF
+            </a>
           </div>
         </div>
       </div>

@@ -269,7 +269,7 @@ export const PORTFOLIO_DATA = {
     linkedin: "https://www.linkedin.com/in/kenn-xavier-dabon/",
     linkedinHandle: "linkedin.com/in/kenn-xavier-dabon",
     email: "kennxavier15@gmail.com",
-    resumePlaceholderNote:
-      "Resume.pdf (Placeholder Mode) — Full interactive CV view is mounted below. Replace /public/Kenn_Xavier_Dabon_Resume.pdf anytime for direct PDF download.",
+    resumeUrl: "/Dabon_Resume.pdf",
+    resumeFileName: "Dabon_Resume.pdf",
   },
 };
